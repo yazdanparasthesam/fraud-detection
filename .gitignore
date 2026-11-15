@@ -1,0 +1,19 @@
+# Data - downloaded via the README command, never committed
+data/paysim.csv
+data/paysim_model.parquet
+
+# Model artefact - produced by `python train.py`
+models/fraud_model.bin
+
+# Generated report (10 MB) - rebuild with `python score_and_export.py`
+outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# OS
+.DS_Store

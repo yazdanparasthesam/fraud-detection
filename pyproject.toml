@@ -1,0 +1,38 @@
+[project]
+name = "fraud-detection"
+version = "1.0.0"
+description = "Fraud detection in mobile-money transactions (PaySim) - ML Zoomcamp 2026 midterm project"
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Pinned to the exact versions the reported metrics were produced with.
+# `uv sync` installs these; `uv lock` freezes the full transitive tree.
+dependencies = [
+    # Core data stack
+    "pandas==2.2.3",
+    "numpy==2.3.5",
+    "pyarrow==26.0.1",
+    "scipy==1.17.1",
+    # Modelling
+    "scikit-learn==1.6.1",
+    "xgboost==3.4.1",
+    # Serving
+    # python-multipart is only a fastapi *extra* (fastapi[standard]), so plain
+    # fastapi does not pull it in - but FastAPI refuses to import an endpoint
+    # that takes UploadFile without it. Pin it explicitly.
+    "fastapi==0.162.4",
+    "python-multipart==0.0.33",
+    "uvicorn==0.54.0",
+    "pydantic==2.14.2",
+    "requests==2.33.0",
+    # Web UI (talks to the API over HTTP - holds no model of its own)
+    "streamlit==1.67.0",
+    # Excel report export
+    "xlsxwriter==3.3.1",
+    "openpyxl==3.1.5",
+]
+
+[tool.uv]
+# This is an application, not an installable library. Without this, `uv sync`
+# would try to build and install "fraud-detection" itself and fail.
+package = false

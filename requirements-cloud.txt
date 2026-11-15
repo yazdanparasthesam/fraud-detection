@@ -1,0 +1,16 @@
+# Slim dependency set for Streamlit Community Cloud.
+#
+# The full requirements.txt also pulls in fastapi, uvicorn, xgboost and pyarrow.
+# The cloud app does not need any of them - it scores in-process through
+# inference.py - and installing them makes the build slow enough to time out.
+# Point Streamlit Cloud's "Requirements file" advanced setting at this file.
+# No fastapi/python-multipart here: the cloud app scores in-process and
+# never serves HTTP.
+pandas==2.2.3
+numpy==2.3.5
+scipy==1.17.1
+scikit-learn==1.6.1
+streamlit==1.67.0
+requests==2.33.0
+xlsxwriter==3.3.1
+openpyxl==3.1.5

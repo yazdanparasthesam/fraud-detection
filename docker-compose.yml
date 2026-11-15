@@ -1,0 +1,76 @@
+# Run the whole stack with one command:
+#
+#     docker compose up --build
+#
+#   API  -> http://localhost:9696/docs
+#   UI   -> http://localhost:8501
+#
+# The two services are separate images on purpose: the API owns inference and
+# the trained model, the UI owns presentation and holds neither. They talk over
+# HTTP, so either can be restarted or scaled independently.
+#
+# Nothing to configure. Both builds use `network: host` (fixes the
+# "error resolving DNS" failure on WSL2/Ubuntu) and automatically forward your
+# shell's HTTP_PROXY / HTTPS_PROXY as BUILD args if you happen to have them set.
+# Docker's predefined proxy args are used, so nothing is baked into the image.
+# If you have no proxy, the args are simply empty and are ignored.
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build on the host network: the build container shares the host's
+      # resolver, which fixes the "error resolving DNS" failure seen on
+      # WSL2/Ubuntu without any manual --network=host flag.
+      network: host
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        NO_PROXY: ${NO_PROXY:-}
+    image: fraud-detection-api
+    container_name: fraud-detection-api
+    ports:
+      - "9696:9696"
+    # The model is produced by train.py and is not committed, so it is mounted
+    # rather than baked into the image.
+    volumes:
+      - ./models:/app/models
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://localhost:9696/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+      network: host
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        NO_PROXY: ${NO_PROXY:-}
+    image: fraud-detection-ui
+    container_name: fraud-detection-ui
+    ports:
+      - "8501:8501"
+    environment:
+      # "api" is the compose service name - it resolves on the shared network.
+      API_URL: http://api:9696
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 25s
+      retries: 3

@@ -1,0 +1,25 @@
+# Core data stack
+pandas==2.2.3
+numpy==2.3.5
+pyarrow==26.0.1
+scipy==1.17.1
+
+# Modelling
+scikit-learn==1.6.1
+xgboost==3.4.1
+
+# Serving
+# python-multipart is required by FastAPI for UploadFile (the /score-file
+# endpoint). It is only a fastapi *extra*, so it must be listed explicitly.
+fastapi==0.162.4
+python-multipart==0.0.33
+uvicorn==0.54.0
+pydantic==2.14.2
+requests==2.33.0
+
+# Web UI (talks to the API over HTTP - holds no model of its own)
+streamlit==1.67.0
+
+# Excel report export (fast .xlsx writer used by score_and_export.py)
+xlsxwriter==3.3.1
+openpyxl==3.1.5
