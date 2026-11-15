@@ -6,6 +6,33 @@ Predict whether a mobile-money transaction is fraudulent, using the PaySim
 simulator dataset (6.36M transactions). Trained model is served over HTTP with
 FastAPI and packaged with Docker.
 
+> 🔗 **GitHub Repo:** [yazdanparasthesam/fraud-detection](https://github.com/yazdanparasthesam/fraud-detection)<br>
+> 🌐 **Live Demo:** [paysim-fraud.streamlit.app](https://paysim-fraud.streamlit.app/)<br>
+> 🎥 **Video Demo:** [Watch demo.mp4](https://github.com/yazdanparasthesam/fraud-detection/blob/main/demo.mp4)
+
+<!--
+  VIDEO: GitHub serves demo.mp4 as application/octet-stream, so some browsers
+  download it instead of playing it inline. For guaranteed inline playback,
+  drag demo.mp4 into any GitHub comment box, copy the resulting
+  https://github.com/user-attachments/assets/<id> URL, and swap it in below.
+-->
+<video src="https://raw.githubusercontent.com/yazdanparasthesam/fraud-detection/main/demo.mp4" controls width="100%">
+  Your browser does not support embedded videos.
+</video>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/DataTalksClub-ML%20Zoomcamp%202026-1769aa?style=for-the-badge" alt="DataTalksClub ML Zoomcamp 2026">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/FastAPI-API-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Streamlit-UI-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/scikit--learn-Model-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white" alt="scikit-learn">
+  <img src="https://img.shields.io/badge/Docker%20Compose-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Compose">
+  <img src="https://img.shields.io/badge/uv-Dependency%20Manager-6E9BF7?style=for-the-badge&logo=uv&logoColor=white" alt="uv">
+  <img src="https://img.shields.io/badge/PR--AUC-0.9968-brightgreen?style=for-the-badge" alt="PR-AUC 0.9968">
+</p>
+
+---
+
 > ### ⚡ Quickstart (if you just unzipped this)
 >
 > The zip ships the **trained model**, so the service runs with no training and
