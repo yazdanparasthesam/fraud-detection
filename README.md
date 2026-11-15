@@ -1,5 +1,6 @@
 # Fraud Detection in Mobile-Money Transactions
 
+**ML Zoomcamp 2026 — Midterm Project**
 
 Predict whether a mobile-money transaction is fraudulent, using the PaySim
 simulator dataset (6.36M transactions). Trained model is served over HTTP with
@@ -722,17 +723,116 @@ The sidebar tells you which one is live.
 
 The free tier requires a **public** repository.
 
+#### 1a · Create the repo — leave every checkbox unticked
+
+Go to **https://github.com/new**, name it `fraud-detection`, set visibility to
+**Public**, and leave *Add a README file*, *Add .gitignore* and *Choose a
+license* **all unticked**.
+
+Starting from a genuinely empty repo avoids the "unrelated histories" rejection
+on your first push, and stops GitHub's generic `.gitignore` from colliding with
+the project's own one.
+
+#### 1b · Set up SSH (one time)
+
+GitHub has not accepted account passwords over HTTPS since 2021. Pushing over
+HTTPS fails with:
+
+```
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+```
+
+The fix is an SSH key (or a Personal Access Token). SSH is less fiddly — it
+does not expire.
+
 ```bash
-git init
-git add .
-git commit -m "PaySim fraud detection"
+ssh-keygen -t ed25519 -C "your-github-username"     # press Enter 3x
+eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy that output → **https://github.com/settings/keys** → **New SSH key** →
+paste → save. Then confirm it works:
+
+```bash
+ssh -T git@github.com
+# expect: "Hi <username>! You've successfully authenticated, but GitHub does
+#          not provide shell access."
+```
+
+<details>
+<summary>Prefer HTTPS / a Personal Access Token?</summary>
+
+**https://github.com/settings/tokens** → **Generate new token** → *Fine-grained*
+→ repository access: `fraud-detection` → permissions: **Contents: Read and
+write** → generate. Then, when git asks for a password, paste the **token**, not
+your account password.
+
+Or install the GitHub CLI, which handles storing it:
+
+```bash
+sudo apt install gh && gh auth login
+```
+
+</details>
+
+#### 1c · Point the project at the repo
+
+```bash
+cd fraud-detection
+git init                     # skip if it is already a git repo
 git remote add origin git@github.com:<you>/fraud-detection.git
+```
+
+Already cloned over HTTPS? Switch it to SSH:
+
+```bash
+git remote set-url origin git@github.com:<you>/fraud-detection.git
+```
+
+#### 1d · Commit — the model must be in it
+
+```bash
+git add -A
+git add -f models/fraud_model.bin     # -f overrides any stale ignore rule
+git status --short                    # models/fraud_model.bin MUST appear
+git commit -m "PaySim fraud detection: CRISP-DM pipeline, FastAPI + Streamlit, Docker, cloud-ready"
+```
+
+If any `data/` or `outputs/` line shows up in `git status`, fix `.gitignore`
+before committing.
+
+#### 1e · Push
+
+```bash
 git push -u origin main
 ```
 
+> **If you ticked a README, .gitignore or licence when creating the repo**, the
+> first push is rejected as unrelated histories. Force-pushing is the clean fix
+> here — and *only* here, because the remote contains nothing but GitHub's
+> template files:
+>
+> ```bash
+> git push -f origin main
+> ```
+>
+> A plain `git pull --rebase` also works, but it will overwrite the project's
+> `.gitignore` with GitHub's generic one, so prefer the force-push in this
+> specific case.
+
+#### 1f · Confirm
+
+```bash
+git ls-remote --heads origin
+```
+
+Then refresh the repo page: you should see ~44 files, including `inference.py`,
+`requirements-cloud.txt` and `models/fraud_model.bin`.
+
 `data/` (471 MB dataset) and `outputs/` (10 MB report) are gitignored, so the
-push is small. `models/fraud_model.bin` **is** committed — only 3.7 KB, and the
-cloud needs it to score in-process.
+push stays small. `models/fraud_model.bin` **is** committed — only 3.7 KB, and
+the cloud needs it to score in-process.
 
 ### Step 2 · Create the app
 

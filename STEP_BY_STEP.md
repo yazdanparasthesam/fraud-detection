@@ -268,11 +268,93 @@ The free tier needs a **public** GitHub repo.
 
 ### Step 1 · Push the project
 
+#### 1a · Create an empty repo on GitHub
+
+**https://github.com/new** → name `fraud-detection` → **Public** → leave
+*Add a README file*, *Add .gitignore* and *Choose a license* **all unticked**.
+
+An empty repo avoids the "unrelated histories" rejection on the first push, and
+stops GitHub's generic `.gitignore` from clobbering the project's own one.
+
+#### 1b · Set up SSH (one time)
+
+GitHub has not accepted account passwords over HTTPS since 2021, so pushing
+over HTTPS fails with:
+
+```
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+```
+
 ```bash
-git init && git add . && git commit -m "PaySim fraud detection"
+ssh-keygen -t ed25519 -C "your-github-username"     # press Enter 3x
+eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy that output → **https://github.com/settings/keys** → **New SSH key** →
+paste → save. Then:
+
+```bash
+ssh -T git@github.com
+# expect: "Hi <username>! You've successfully authenticated"
+```
+
+**Prefer a token?** **https://github.com/settings/tokens** → *Fine-grained* →
+repository access `fraud-detection` → permissions **Contents: Read and write**.
+When git asks for a password, paste the **token**. Or `sudo apt install gh &&
+gh auth login` and let it store the credential for you.
+
+#### 1c · Point the project at the repo
+
+```bash
+cd ~/Downloads/fraud-detection
+git init                     # skip if it is already a git repo
 git remote add origin git@github.com:<you>/fraud-detection.git
+```
+
+Already cloned over HTTPS? Switch it:
+
+```bash
+git remote set-url origin git@github.com:<you>/fraud-detection.git
+```
+
+#### 1d · Commit — the model must be in it
+
+```bash
+git add -A
+git add -f models/fraud_model.bin     # -f overrides any stale ignore rule
+git status --short                    # models/fraud_model.bin MUST appear
+git commit -m "PaySim fraud detection: CRISP-DM pipeline, FastAPI + Streamlit, Docker, cloud-ready"
+```
+
+If any `data/` or `outputs/` line appears in `git status`, fix `.gitignore`
+before committing.
+
+#### 1e · Push
+
+```bash
 git push -u origin main
 ```
+
+> **Created the repo with a README/.gitignore/licence ticked?** The first push
+> is rejected as unrelated histories. Force-push is the clean fix — and *only*
+> in this case, because the remote holds nothing but GitHub's template files:
+>
+> ```bash
+> git push -f origin main
+> ```
+>
+> `git pull --rebase` also works but overwrites the project `.gitignore` with
+> GitHub's generic one, so prefer the force-push here.
+
+#### 1f · Confirm
+
+```bash
+git ls-remote --heads origin
+```
+
+Refresh the repo page: ~44 files, including `inference.py`,
+`requirements-cloud.txt` and `models/fraud_model.bin`.
 
 `data/` and `outputs/` are gitignored so the push stays small.
 `models/fraud_model.bin` is committed on purpose (3.7 KB) — the cloud app needs
