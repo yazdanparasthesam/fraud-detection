@@ -354,7 +354,7 @@ git ls-remote --heads origin
 ```
 
 Refresh the repo page: ~44 files, including `inference.py`,
-`requirements-cloud.txt` and `models/fraud_model.bin`.
+the slim `requirements.txt` and `models/fraud_model.bin`.
 
 `data/` and `outputs/` are gitignored so the push stays small.
 `models/fraud_model.bin` is committed on purpose (3.7 KB) — the cloud app needs
@@ -364,10 +364,14 @@ it to score in-process.
 
 1. **https://share.streamlit.io** → sign in with GitHub → **New app**
 2. Repo and branch → **Main file path**: `streamlit_app.py`
-3. **Advanced settings** (open this before deploying):
-   * **Python version**: `3.12`
-   * **Requirements file**: `requirements-cloud.txt`
+3. **Advanced settings** (open this before deploying): **Python version**
+   set to `3.12`. Leave **Secrets** empty.
 4. **Deploy**
+
+> ⚠️ **No "Requirements file" option exists.** Community Cloud always installs
+> the root `requirements.txt`, so this repo keeps that file slim on purpose.
+> Do not paste a filename or package list into **Secrets** — it is validated as
+> TOML and will fail with *"Invalid format: please enter valid TOML."*
 
 ### Step 3 · Verify
 

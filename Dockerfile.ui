@@ -19,8 +19,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN uv venv "$VIRTUAL_ENV" && uv pip install --no-cache -r requirements.txt
+COPY requirements-dev.txt .
+RUN uv venv "$VIRTUAL_ENV" && uv pip install --no-cache -r requirements-dev.txt
 
 # streamlit_app.py imports reasons.py directly (column detection) and
 # inference.py lazily, as the fallback when no API is reachable

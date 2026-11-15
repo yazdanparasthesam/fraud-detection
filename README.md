@@ -828,7 +828,7 @@ git ls-remote --heads origin
 ```
 
 Then refresh the repo page: you should see ~44 files, including `inference.py`,
-`requirements-cloud.txt` and `models/fraud_model.bin`.
+the slim `requirements.txt` and `models/fraud_model.bin`.
 
 `data/` (471 MB dataset) and `outputs/` (10 MB report) are gitignored, so the
 push stays small. `models/fraud_model.bin` **is** committed — only 3.7 KB, and
@@ -839,10 +839,16 @@ the cloud needs it to score in-process.
 1. Go to **https://share.streamlit.io** and sign in with GitHub.
 2. **New app** → pick your repo, branch (`main`), and set
    **Main file path** to `streamlit_app.py`.
-3. Open **Advanced settings** before deploying:
-   * **Python version** → `3.12`
-   * **Requirements file** → `requirements-cloud.txt`
+3. Open **Advanced settings** and set **Python version** → `3.12`.
 4. **Deploy**.
+
+> ⚠️ **There is no "Requirements file" setting.** Community Cloud always
+> installs the `requirements.txt` at the repository root — you cannot point it
+> at a differently-named file. That is why the root `requirements.txt` in this
+> repo is the slim cloud set, and the full set lives in `requirements-dev.txt`.
+> Leave the **Secrets** box empty: this app needs no secrets. Putting anything
+> that is not TOML in there (a filename, a list of packages) produces
+> *"Invalid format: please enter valid TOML."* and blocks the save.
 
 ### Step 3 · Confirm it came up without the backend
 
@@ -858,9 +864,10 @@ Then check it works:
 
 ### Notes
 
-* `requirements-cloud.txt` is deliberately slim. Installing the full
-  `requirements.txt` (fastapi, uvicorn, xgboost, pyarrow) is slow enough to
-  time out the free-tier build, and none of it is needed in-process.
+* The root `requirements.txt` is deliberately slim: no fastapi, uvicorn,
+  xgboost or pyarrow. Community Cloud installs that file, and the heavier set
+  is slow enough to time out the free-tier build. None of it is needed
+  in-process — see `requirements-dev.txt` for the full local/Docker set.
 * Cloud storage is ephemeral — anything the app writes is lost when it sleeps.
   The app only reads, so this does not affect it.
 * To redeploy after a change: push to GitHub; the app rebuilds automatically.
@@ -884,9 +891,9 @@ Then check it works:
 ├── sample_transactions.csv 200-row demo file to try batch upload
 ├── pyproject.toml          dependency source of truth
 ├── uv.lock                 frozen transitive tree (53 packages)
-├── requirements.txt        pip fallback / used by the Docker image
+├── requirements.txt        slim deps - what Streamlit Cloud installs
+├── requirements-dev.txt    full deps - local pip fallback + Docker image
 ├── inference.py            shared scoring logic (no web framework)
-├── requirements-cloud.txt  slim deps for Streamlit Cloud
 ├── Dockerfile              API service image
 ├── Dockerfile.ui           Streamlit UI image
 ├── .streamlit/config.toml  cloud theme settings

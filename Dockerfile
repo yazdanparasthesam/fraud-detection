@@ -13,8 +13,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Dependencies first so the layer is cached across code edits
-COPY requirements.txt .
-RUN uv venv "$VIRTUAL_ENV" && uv pip install --no-cache -r requirements.txt
+COPY requirements-dev.txt .
+RUN uv venv "$VIRTUAL_ENV" && uv pip install --no-cache -r requirements-dev.txt
 
 # Application code. predict.py imports inference.py and reasons.py, and
 # inference.py imports reasons.py - all must be present or the import fails
