@@ -8,7 +8,7 @@ FastAPI and packaged with Docker.
 
 > 🔗 **GitHub Repo:** [yazdanparasthesam/fraud-detection](https://github.com/yazdanparasthesam/fraud-detection)<br>
 > 🌐 **Live Demo:** [paysim-fraud.streamlit.app](https://paysim-fraud.streamlit.app/)<br>
-> 🎥 **Video Demo:** [Watch demo.mp4](https://github.com/yazdanparasthesam/fraud-detection/blob/main/demo.mp4)
+> 🎥 **Video Demo:** 
 
 <!--
   VIDEO: GitHub serves demo.mp4 as application/octet-stream, so some browsers
@@ -16,7 +16,7 @@ FastAPI and packaged with Docker.
   drag demo.mp4 into any GitHub comment box, copy the resulting
   https://github.com/user-attachments/assets/<id> URL, and swap it in below.
 -->
-<video src="https://raw.githubusercontent.com/yazdanparasthesam/fraud-detection/main/demo.mp4" controls width="100%">
+<video src="https://github.com/user-attachments/assets/7ca77738-a106-494a-af4c-646d1f1d1b40" controls width="100%">
   Your browser does not support embedded videos.
 </video>
 
