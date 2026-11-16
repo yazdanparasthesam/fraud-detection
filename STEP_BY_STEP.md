@@ -362,17 +362,46 @@ it to score in-process.
 
 ### Step 2 · Create the app
 
-1. **https://share.streamlit.io** → sign in with GitHub → **New app**
-2. Repo and branch → **Main file path**: `streamlit_app.py`
-3. **Advanced settings** (open this before deploying): **Python version**
-   set to `3.12`. Leave **Secrets** empty.
-4. **Deploy**
+1. Go to **https://share.streamlit.io** → **Sign in with GitHub** → authorize
+   Streamlit when it asks.
+2. **New app** (top right) → choose *"Deploy a public app from GitHub"*.
+3. Fill in the form:
 
-> ⚠️ **No "Requirements file" option exists.** Community Cloud always installs
-> the root `requirements.txt`, so this repo keeps that file slim on purpose.
-> Do not paste a filename or package list into **Secrets** — it is validated as
-> TOML and will fail with *"Invalid format: please enter valid TOML."*
+   | field | value |
+   |---|---|
+   | Repository | `yazdanparasthesam/fraud-detection` |
+   | Branch | `main` |
+   | Main file path | `streamlit_app.py` |
+   | App URL | pick something short, e.g. `paysim-fraud` |
 
+4. Open **Advanced settings** *before* clicking Deploy and set **Python
+   version** to `3.12`.
+5. **Deploy**. The first build takes 2–5 minutes; **Manage app** shows the log.
+
+> ⚠️ **Two traps in Advanced settings**
+>
+> **1. There is no "Requirements file" field.** Community Cloud always installs
+> the `requirements.txt` at the repository root and the filename cannot be
+> changed — so this repo keeps the slim set there, and the full set in
+> `requirements-dev.txt`. Don't hunt for a setting that doesn't exist.
+>
+> **2. Leave Secrets empty.** It is validated as TOML: a filename or a package
+> list gives *"Invalid format: please enter valid TOML."* and blocks the save.
+> This app needs no secrets — it scores from a committed model file.
+
+### Step 2b · Redeploying after a change
+
+Push to GitHub. Streamlit notices and rebuilds on its own — nothing to click.
+
+```bash
+git add -A
+git add -f models/fraud_model.bin .streamlit/config.toml
+git commit -m "describe the change"
+git push
+```
+
+Changed a **setting** (Python version, Secrets) instead? That does *not*
+trigger a rebuild — press **Relaunch to update** in the app menu.
 ### Step 3 · Verify
 
 The sidebar should show the amber **"no backend — running the model in-

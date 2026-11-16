@@ -31,6 +31,31 @@ FastAPI and packaged with Docker.
   <img src="https://img.shields.io/badge/PR--AUC-0.9968-brightgreen?style=for-the-badge" alt="PR-AUC 0.9968">
 </p>
 
+<p align="center">
+  <img src="images/banner.jpg" alt="Fraud detection pipeline overview" width="100%">
+</p>
+
+## 📖 Table of Contents
+
+- [1. Problem description](#1-problem-description)
+- [2. Dataset](#2-dataset)
+- [2b. System architecture & data flow](#2b-system-architecture--data-flow)
+- [3. Exploratory data analysis](#3-exploratory-data-analysis)
+- [4. The leakage problem (and how it was avoided)](#4-the-leakage-problem-and-how-it-was-avoided)
+- [5. Model selection](#5-model-selection)
+- [5b. Unsupervised anomaly detection (Isolation Forest)](#5b-unsupervised-anomaly-detection-isolation-forest)
+- [5c. The Excel report](#5c-the-excel-report-outputsfraud_reportxlsx)
+- [6. How to run](#6-how-to-run)
+- [6b. Scoring an uploaded file](#6b-scoring-an-uploaded-file-csv--excel)
+- [7. Run with Docker](#7-run-with-docker)
+- [7b. Running the UI in Docker](#7b-running-the-ui-in-docker)
+- [7c. Deploying to Streamlit Community Cloud](#7c-deploying-to-streamlit-community-cloud)
+- [8. Repository structure](#8-repository-structure)
+- [9. Limitations](#9-limitations)
+- [10. Screenshots](#10-screenshots)
+- [11. CRISP-DM](#11-crisp-dm)
+- [12. Evaluation criteria](#12-evaluation-criteria)
+
 ---
 
 > ### ⚡ Quickstart (if you just unzipped this)
@@ -125,6 +150,49 @@ sha256sum data/paysim.csv
 Columns: `step` (hour), `type`, `amount`, `nameOrig`, `oldbalanceOrg`,
 `newbalanceOrig`, `nameDest`, `oldbalanceDest`, `newbalanceDest`, `isFraud`,
 `isFlaggedFraud`.
+
+---
+
+## 2b. System architecture & data flow
+
+One trained artefact, two ways of serving it. Which one runs depends on
+whether an API happens to be reachable.
+
+```mermaid
+flowchart LR
+    A["PaySim CSV · 471 MB"] --> B["prepare + split 60/20/20"]
+    B --> C["build_features · 16 leak-free features"]
+    C --> D["train.py · DecisionTree depth 4"]
+    D --> E[("fraud_model.bin · 3.7 KB")]
+    E --> F["FastAPI predict.py :9696"]
+    E --> G["inference.py · in-process"]
+    F --> H["Streamlit UI — local / Docker"]
+    G --> I["Streamlit UI — Community Cloud"]
+```
+
+| deployment | how a score is produced | sidebar shows |
+|---|---|---|
+| local, or Docker Compose | UI → HTTP → FastAPI on port 9696 | 🟢 backend online |
+| Streamlit Community Cloud | UI → `inference.py` loads the model directly | 🟡 no backend — running the model in-process |
+
+Both paths call the *same* `inference.py`, so the numbers cannot drift: on
+`sample_transactions.csv` each returns **38 flagged, precision 1.000,
+recall 0.950**.
+
+**The flow for a single request:**
+
+1. **Input** — eight transaction fields: `type`, `amount`, `step`,
+   `oldbalanceOrg`, `oldbalanceDest`, `nameOrig`, `nameDest`, `isFraud`.
+2. **Prepare** — derive `balance_after_send`, `log_amount`, `amount_to_balance`,
+   `hour_of_day`, `day` and four zero/merchant flags. Post-transaction balances
+   are deliberately never used — see [§4](#4-the-leakage-problem-and-how-it-was-avoided).
+3. **Vectorise** — `DictVectorizer` transform, memory-bounded by `vectorize.py`.
+   10 engineered + 4 raw numeric + 2 one-hot `type` columns = **16 features**.
+4. **Score** — tree leaf probability compared against the 0.999369 threshold.
+5. **Explain** — the rarest condition on the winning leaf path becomes
+   `why_flagged`; the literal comparison chain is exported as `decision_rule`.
+6. **Output** — probability, risk band, and a decision of `block`, `allow` or
+   `auto_approve`.
 
 ---
 
@@ -863,20 +931,38 @@ the cloud needs it to score in-process.
 
 ### Step 2 · Create the app
 
-1. Go to **https://share.streamlit.io** and sign in with GitHub.
-2. **New app** → pick your repo, branch (`main`), and set
-   **Main file path** to `streamlit_app.py`.
-3. Open **Advanced settings** and set **Python version** → `3.12`.
-4. **Deploy**.
+1. Go to **https://share.streamlit.io** → **Sign in with GitHub** → authorize
+   Streamlit when it asks.
+2. **New app** (top right) → choose *"Deploy a public app from GitHub"*.
+3. Fill in the form:
 
-> ⚠️ **There is no "Requirements file" setting.** Community Cloud always
-> installs the `requirements.txt` at the repository root — you cannot point it
-> at a differently-named file. That is why the root `requirements.txt` in this
-> repo is the slim cloud set, and the full set lives in `requirements-dev.txt`.
-> Leave the **Secrets** box empty: this app needs no secrets. Putting anything
-> that is not TOML in there (a filename, a list of packages) produces
-> *"Invalid format: please enter valid TOML."* and blocks the save.
+   | field | value |
+   |---|---|
+   | Repository | `yazdanparasthesam/fraud-detection` |
+   | Branch | `main` |
+   | Main file path | `streamlit_app.py` |
+   | App URL | pick something short, e.g. `paysim-fraud` |
 
+4. Open **Advanced settings** *before* clicking Deploy and set:
+
+   | field | value |
+   |---|---|
+   | Python version | `3.12` |
+
+5. **Deploy**. The first build takes 2–5 minutes; **Manage app** shows the log.
+
+> ⚠️ **Two traps in Advanced settings**
+>
+> **1. There is no "Requirements file" field.** Community Cloud always installs
+> the `requirements.txt` at the repository root, and the filename cannot be
+> changed. That is why this repo keeps the slim set in that file and the full
+> set in `requirements-dev.txt` — see [§8](#8-repository-structure). Do not go
+> looking for a setting that does not exist.
+>
+> **2. Leave Secrets empty.** The box is validated as TOML, so putting a
+> filename or a package list in it produces *"Invalid format: please enter
+> valid TOML."* and blocks the save. This app needs no secrets at all — it
+> scores from a committed model file.
 ### Step 3 · Confirm it came up without the backend
 
 You should see the amber **"no backend — running the model in-process"**
@@ -904,37 +990,45 @@ Then check it works:
 
 ---
 
-## 8. Project structure
+## 8. Repository structure
 
 ```
-├── README.md
-├── notebook.ipynb          EDA, feature importance, model selection
-├── train.py                training pipeline -> models/fraud_model.bin
-├── predict.py              FastAPI web service
-├── streamlit_app.py        Streamlit UI (calls the API, holds no model)
-├── score_and_export.py     tree + Isolation Forest scoring -> Excel report
-├── reasons.py              shared reason codes + upload column detection
-├── vectorize.py            memory-bounded DictVectorizer transform
-├── sample_transactions.csv 200-row demo file to try batch upload
-├── pyproject.toml          dependency source of truth
-├── uv.lock                 frozen transitive tree (53 packages)
-├── requirements.txt        slim deps - what Streamlit Cloud installs
-├── requirements-dev.txt    full deps - local pip fallback + Docker image
-├── inference.py            shared scoring logic (no web framework)
-├── Dockerfile              API service image
-├── Dockerfile.ui           Streamlit UI image
-├── .streamlit/config.toml  cloud theme settings
-├── docker-compose.yml      runs both with `docker compose up`
-├── data/                   dataset (downloaded, not committed)
-│   ├── paysim.csv
-│   └── paysim_model.parquet   prepared-table cache
+fraud-detection/
+├── README.md               # product overview, architecture, rubric mapping
+├── STEP_BY_STEP.md         # click-by-click run guide for a fresh machine
+├── notebook.ipynb          # EDA, feature importance, model selection
+├── train.py                # training pipeline -> models/fraud_model.bin
+├── predict.py              # FastAPI web service (/predict, /score-file)
+├── inference.py            # shared scoring logic, no web framework
+├── streamlit_app.py        # Streamlit UI - HTTP client, or in-process fallback
+├── score_and_export.py     # tree + Isolation Forest scoring -> Excel report
+├── reasons.py              # shared reason codes + upload column detection
+├── vectorize.py            # memory-bounded DictVectorizer transform
+├── sample_transactions.csv # 200-row demo file to try batch upload
+├── pyproject.toml          # dependency source of truth
+├── uv.lock                 # frozen transitive tree (53 packages)
+├── requirements.txt        # slim deps - what Streamlit Cloud installs
+├── requirements-dev.txt    # full deps - local pip fallback + Docker image
+├── Dockerfile              # API service image
+├── Dockerfile.ui           # Streamlit UI image
+├── docker-compose.yml      # runs both with `docker compose up`
+├── .streamlit/config.toml  # cloud theme settings
+├── data/                   # dataset (downloaded, not committed)
+│   ├── paysim.csv          #   471 MB, fetched by the command in section 6
+│   └── paysim_model.parquet#   prepared-table cache, rebuilt automatically
 ├── models/
-│   └── fraud_model.bin     trained artefact
+│   └── fraud_model.bin     # trained artefact - COMMITTED, only 3.7 KB
 ├── outputs/
-│   └── fraud_report.xlsx   flagged transactions + reason codes
-├── images/                 screenshots used in section 10
-└── sample_transactions.csv
+│   └── fraud_report.xlsx   # flagged transactions + reason codes
+└── images/                 # banner + the 23 screenshots in section 10
 ```
+
+Two files are easy to confuse, so they are named for what installs them:
+
+| file | installs | used by |
+|---|---|---|
+| `requirements.txt` | the slim set: pandas, numpy, scipy, scikit-learn, streamlit, requests, xlsxwriter, openpyxl | **Streamlit Community Cloud** |
+| `requirements-dev.txt` | everything above plus fastapi, uvicorn, xgboost, pyarrow, pydantic | Docker images, local pip |
 
 ---
 
@@ -1116,11 +1210,33 @@ not contain the model — that is mounted at run time.
 
 ## 11. CRISP-DM
 
+> **§** is the *section sign*, from Latin *signum sectionis*. `§4` just means
+> "section 4 of this document". Every one below is a link you can click.
+
 | Phase | Where |
 |---|---|
-| Business understanding | §1 — asymmetric cost of false positives vs negatives |
-| Data understanding | §3, `notebook.ipynb` — 6.36M rows, imbalance, time structure |
-| Data preparation | §4 — type filter, leak-free feature policy, 11 engineered features |
-| Modeling | §5 — 4 model families, 15 configurations, tuned on validation |
-| Evaluation | §5 — held-out test: PR-AUC 0.9968, 7 FP / 4 FN |
-| Deployment | §6–7 — FastAPI service + Docker, health endpoint reports metrics |
+| Business understanding | [§1](#1-problem-description) — asymmetric cost of false positives vs false negatives |
+| Data understanding | [§3](#3-exploratory-data-analysis), `notebook.ipynb` — 6.36M rows, 0.13% fraud, time structure |
+| Data preparation | [§4](#4-the-leakage-problem-and-how-it-was-avoided) — type filter, leak-free feature policy, 10 engineered fields |
+| Modeling | [§5](#5-model-selection) — 4 model families, 15 configurations, tuned on validation |
+| Evaluation | [§5](#5-model-selection) — held-out test: PR-AUC 0.9968, 7 FP / 4 FN of 554,082 |
+| Deployment | [§6](#6-how-to-run)–[§7](#7-run-with-docker) — FastAPI service + Docker, `/health` reports metrics; [§7c](#7c-deploying-to-streamlit-community-cloud) — Streamlit Community Cloud |
+
+---
+
+## 12. Evaluation criteria
+
+Where each rubric item is satisfied.
+
+| # | Criterion | Pts | Where |
+|---|---|---:|---|
+| 1 | Problem description | 2 | [§1](#1-problem-description) — what is being detected, who is affected, why errors are asymmetric |
+| 2 | EDA and feature importance | 2 | [§3](#3-exploratory-data-analysis), [§5](#5-model-selection) — imbalance, time structure, per-condition rarity |
+| 3 | Several models + tuning | 3 | [§5](#5-model-selection) — 4 families, 15 configurations, tuned on the validation split |
+| 4 | Notebook converted to a script | 1 | `notebook.ipynb` → `train.py` |
+| 5 | Reproducibility | 1 | [§6](#6-how-to-run) — `uv.lock`, seeded 60/20/20 split, model sha256 exposed by `/health` |
+| 6 | Model deployment | 1 | [§6](#6-how-to-run), [§7c](#7c-deploying-to-streamlit-community-cloud) — FastAPI service and a public Streamlit app |
+| 7 | Dependency and environment | 2 | `pyproject.toml`, `uv.lock`, both Dockerfiles |
+| 8 | Containerization | 2 | [§7](#7-run-with-docker), [§7b](#7b-running-the-ui-in-docker) — two images plus Compose |
+| 9 | Cloud deployment | 2 | [§7c](#7c-deploying-to-streamlit-community-cloud) — live on Streamlit Community Cloud |
+| | **Total** | **16** | |
